@@ -1,0 +1,194 @@
+{
+  "hospitals": [
+    {
+      "id": "h1111111-1111-1111-1111-111111111111",
+      "name": "Apollo Trauma Center & Regional Blood Bank",
+      "license_number": "MED-REG-TRAUMA-9942",
+      "email": "trauma.dispatch@apollohealth.org",
+      "phone": "+91-9876543210",
+      "lat": 10.5276,
+      "lon": 76.2144,
+      "is_verified": true
+    },
+    {
+      "id": "h2222222-2222-2222-2222-222222222222",
+      "name": "Metropolitan Memorial Hospital",
+      "license_number": "MED-REG-METRO-4421",
+      "email": "emergency@metrohealth.org",
+      "phone": "+91-9876543211",
+      "lat": 10.5385,
+      "lon": 76.2250,
+      "is_verified": true
+    }
+  ],
+  "donors": [
+    {
+      "id": "d001-tier1-o-neg",
+      "full_name": "Arjun Menon",
+      "phone": "+91-9900000001",
+      "blood_type": "O-",
+      "lat": 10.5290,
+      "lon": 76.2155,
+      "last_donation_date": "2026-04-10",
+      "reliability_score": 140,
+      "is_available": true,
+      "minutes_since_heartbeat": 5
+    },
+    {
+      "id": "d002-tier1-o-neg-cooldown",
+      "full_name": "Deepak Raj (In Cooldown)",
+      "phone": "+91-9900000002",
+      "blood_type": "O-",
+      "lat": 10.5282,
+      "lon": 76.2160,
+      "last_donation_date": "2026-08-25",
+      "reliability_score": 120,
+      "is_available": true,
+      "minutes_since_heartbeat": 10
+    },
+    {
+      "id": "d003-tier1-o-neg-inactive",
+      "full_name": "Kavita Nair (Offline)",
+      "phone": "+91-9900000003",
+      "blood_type": "O-",
+      "lat": 10.5265,
+      "lon": 76.2135,
+      "last_donation_date": "2026-03-01",
+      "reliability_score": 110,
+      "is_available": false,
+      "minutes_since_heartbeat": 4
+    },
+    {
+      "id": "d004-tier1-o-neg",
+      "full_name": "Rahul Verma",
+      "phone": "+91-9900000004",
+      "blood_type": "O-",
+      "lat": 10.5255,
+      "lon": 76.2130,
+      "last_donation_date": "2026-02-15",
+      "reliability_score": 130,
+      "is_available": true,
+      "minutes_since_heartbeat": 12
+    },
+    {
+      "id": "d005-tier1-b-pos",
+      "full_name": "Siddharth Rao",
+      "phone": "+91-9900000005",
+      "blood_type": "B+",
+      "lat": 10.5279,
+      "lon": 76.2170,
+      "last_donation_date": "2026-01-20",
+      "reliability_score": 125,
+      "is_available": true,
+      "minutes_since_heartbeat": 2
+    },
+    {
+      "id": "d006-tier2-o-neg",
+      "full_name": "Dr. Ananya Pillai",
+      "phone": "+91-9900000006",
+      "blood_type": "O-",
+      "lat": 10.5420,
+      "lon": 76.2280,
+      "last_donation_date": "2026-03-12",
+      "reliability_score": 145,
+      "is_available": true,
+      "minutes_since_heartbeat": 8
+    },
+    {
+      "id": "d007-tier2-o-neg",
+      "full_name": "Vikram Sethi",
+      "phone": "+91-9900000007",
+      "blood_type": "O-",
+      "lat": 10.5100,
+      "lon": 76.2050,
+      "last_donation_date": "2026-04-05",
+      "reliability_score": 115,
+      "is_available": true,
+      "minutes_since_heartbeat": 15
+    },
+    {
+      "id": "d008-tier2-o-neg",
+      "full_name": "Sneha Sharma",
+      "phone": "+91-9900000008",
+      "blood_type": "O-",
+      "lat": 10.5350,
+      "lon": 76.2400,
+      "last_donation_date": "2026-05-01",
+      "reliability_score": 135,
+      "is_available": true,
+      "minutes_since_heartbeat": 1
+    },
+    {
+      "id": "d009-tier2-a-pos",
+      "full_name": "Rohan George",
+      "phone": "+91-9900000009",
+      "blood_type": "A+",
+      "lat": 10.5150,
+      "lon": 76.2300,
+      "last_donation_date": "2026-02-10",
+      "reliability_score": 120,
+      "is_available": true,
+      "minutes_since_heartbeat": 20
+    },
+    {
+      "id": "d010-tier3-o-neg",
+      "full_name": "Meera Krishnan",
+      "phone": "+91-9900000010",
+      "blood_type": "O-",
+      "lat": 10.5900,
+      "lon": 76.2700,
+      "last_donation_date": "2026-01-15",
+      "reliability_score": 150,
+      "is_available": true,
+      "minutes_since_heartbeat": 10
+    },
+    {
+      "id": "d011-tier3-o-neg",
+      "full_name": "Gautam Iyer",
+      "phone": "+91-9900000011",
+      "blood_type": "O-",
+      "lat": 10.4500,
+      "lon": 76.1500,
+      "last_donation_date": "2026-04-15",
+      "reliability_score": 105,
+      "is_available": true,
+      "minutes_since_heartbeat": 25
+    },
+    {
+      "id": "d012-tier3-ab-pos",
+      "full_name": "Pooja Hegde",
+      "phone": "+91-9900000012",
+      "blood_type": "AB+",
+      "lat": 10.5800,
+      "lon": 76.2100,
+      "last_donation_date": "2026-02-28",
+      "reliability_score": 110,
+      "is_available": true,
+      "minutes_since_heartbeat": 18
+    },
+    {
+      "id": "d013-tier1-a-neg",
+      "full_name": "Naveen Babu",
+      "phone": "+91-9900000013",
+      "blood_type": "A-",
+      "lat": 10.5280,
+      "lon": 76.2140,
+      "last_donation_date": "2026-03-30",
+      "reliability_score": 138,
+      "is_available": true,
+      "minutes_since_heartbeat": 7
+    },
+    {
+      "id": "d014-tier2-b-neg",
+      "full_name": "Divya Nambiar",
+      "phone": "+91-9900000014",
+      "blood_type": "B-",
+      "lat": 10.5320,
+      "lon": 76.2290,
+      "last_donation_date": "2026-05-10",
+      "reliability_score": 128,
+      "is_available": true,
+      "minutes_since_heartbeat": 9
+    }
+  ]
+}

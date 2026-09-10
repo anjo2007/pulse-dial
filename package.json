@@ -1,0 +1,24 @@
+{
+  "name": "pulse-dial",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Geofenced Rapid Emergency Blood Dispatch System",
+  "scripts": {
+    "start:backend": "node backend/src/server.js",
+    "start:frontend": "npm.cmd --prefix frontend run dev",
+    "drill": "node simulator/drill.js",
+    "test": "node simulator/drill.js",
+    "build:frontend": "npm.cmd --prefix frontend run build"
+  },
+  "keywords": [
+    "blood-dispatch",
+    "geofencing",
+    "redis-geohash",
+    "postgis",
+    "emergency-response",
+    "flutter",
+    "react"
+  ],
+  "author": "Pulse Dial Core Engineering Team",
+  "license": "MIT"
+}
