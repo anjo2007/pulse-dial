@@ -294,11 +294,6 @@ export default function App() {
     localStorage.removeItem('pulse_dial_hospital_session');
   };
 
-  const handleQuickLogin = (hosp) => {
-    setLoginEmail(hosp.email);
-    setLoginPassword(hosp.password);
-  };
-
   // Trigger SOS Emergency Request (Dual Sync: Firestore Cloud + Local API)
   const handleTriggerSos = async (reqData) => {
     // 1. Direct Firestore Execution (ensures Vercel standalone operation)
@@ -529,31 +524,6 @@ export default function App() {
               </button>
             </form>
 
-            {/* Quick Credentials Selector */}
-            <div className="pt-2 border-t border-slate-100 space-y-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block text-center">
-                Pre-Configured Hospital Accounts:
-              </span>
-              <div className="space-y-1.5">
-                {PRECONFIGURED_HOSPITALS.map((h) => (
-                  <button
-                    key={h.id}
-                    type="button"
-                    onClick={() => handleQuickLogin(h)}
-                    className="w-full p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-left transition flex items-center justify-between text-xs"
-                  >
-                    <div>
-                      <strong className="text-slate-900 block font-bold">{h.name}</strong>
-                      <span className="text-slate-500 text-[10px] font-mono">{h.email}</span>
-                    </div>
-                    <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded font-bold text-red-600">
-                      Auto-Fill
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Strict Notice: No Public Signup for Hospitals */}
             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 text-center">
               <span className="text-[11px] text-slate-500 block">
@@ -613,12 +583,6 @@ export default function App() {
 
         {/* Action Controls & Navigation */}
         <div className="flex items-center gap-3">
-          {/* Cloud Sync Status Indicator */}
-          <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[11px] font-mono font-bold">FIREBASE SYNCED</span>
-          </div>
-
           {/* Tab Navigation */}
           <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
             <button
