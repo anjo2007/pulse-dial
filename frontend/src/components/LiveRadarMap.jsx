@@ -94,10 +94,11 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
       >
         <RecenterMap center={hospitalPos} zoom={currentTier === 1 ? 15 : currentTier === 2 ? 13 : 11} />
 
-        {/* CartoDB Positron Light Ambient Tiles */}
+        {/* CARTO Voyager Basemap Tiles with Authenticated API Key */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://carto.com/" target="_blank" rel="noopener noreferrer">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>'
+          url={`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${import.meta.env.VITE_CARTO_API_KEY || 'cb1_2ogy_1_02329e70d4de29ec6b2fceb5'}`}
+          maxZoom={20}
         />
 
         {/* Wave 1 Progressive Perimeter: 500 meters */}
