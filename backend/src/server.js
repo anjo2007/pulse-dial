@@ -98,18 +98,150 @@ app.get('/health', (req, res) => {
   });
 });
 
-// List all hospitals
-app.get('/api/hospitals', (req, res) => {
-  res.json(Array.from(engine.hospitals.values()));
+// Hospital Login (Manual pre-configured accounts ONLY - no public signup)
+app.post('/api/auth/hospital-login', (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Username/Email and Password are required.' });
+  }
+
+  const hospitalsList = Array.from(engine.hospitals.values());
+  const hospital = hospitalsList.find(
+    (h) => (h.email.toLowerCase() === email.toLowerCase() || h.license_number.toLowerCase() === email.toLowerCase()) && h.password === password
+  );
+
+  if (!hospital) {
+    return res.status(401).json({
+      error: 'Invalid credentials. Only pre-verified hospital accounts provisioned by State Health Authorities may log in.',
+    });
+  }
+
+  res.json({
+    success: true,
+    message: 'Authentication successful',
+    hospital: {
+      id: hospital.id,
+      name: hospital.name,
+      license_number: hospital.license_number,
+      email: hospital.email,
+      phone: hospital.phone,
+      lat: hospital.lat,
+      lon: hospital.lon,
+      district: hospital.district,
+      blood_bank_incharge: hospital.blood_bank_incharge,
+    },
+    token: `hosp_jwt_${Buffer.from(hospital.id + ':' + Date.now()).toString('base64')}`,
+  });
 });
 
-// List all donors (with privacy obfuscation option)
+// Citizen Donor Registration
+app.post('/api/donors/register', (req, res) => {
+  const {
+    full_name,
+    phone,
+    email,
+    password,
+    blood_type,
+    age,
+    weight_kg,
+    last_donation_date,
+    medications = 'None',
+    diseases = 'None',
+    lat = 10.5280,
+    lon = 76.2150,
+  } = req.body;
+
+  if (!full_name || !phone || !blood_type) {
+    return res.status(400).json({ error: 'Full Name, Phone Number, and Blood Group are mandatory.' });
+  }
+
+  const donorId = `d_${uuidv4().substring(0, 8)}`;
+  const newDonor = {
+    id: donorId,
+    full_name,
+    phone,
+    email: email || `${phone}@pulsedial.org`,
+    password: password || 'donor123',
+    blood_type,
+    age: Number(age) || 25,
+    weight_kg: Number(weight_kg) || 60,
+    last_donation_date: last_donation_date || null,
+    medications,
+    diseases,
+    lat: Number(lat),
+    lon: Number(lon),
+    reliability_score: 100, // starting base Karma score
+    is_available: true,
+    minutes_since_heartbeat: 0,
+    created_at: new Date().toISOString(),
+  };
+
+  engine.registerDonor(newDonor);
+
+  broadcast({
+    type: 'DONOR_REGISTERED',
+    donor: {
+      id: newDonor.id,
+      full_name: newDonor.full_name,
+      blood_type: newDonor.blood_type,
+      reliability_score: newDonor.reliability_score,
+      is_available: newDonor.is_available,
+    },
+  });
+
+  res.status(201).json({
+    success: true,
+    message: 'Donor account created successfully',
+    donor: newDonor,
+  });
+});
+
+// Citizen Donor Login
+app.post('/api/auth/donor-login', (req, res) => {
+  const { identifier, password } = req.body;
+  const donorsList = Array.from(engine.donors.values());
+  const donor = donorsList.find(
+    (d) => (d.phone === identifier || d.email === identifier) && (!password || d.password === password)
+  );
+
+  if (!donor) {
+    return res.status(401).json({ error: 'Invalid phone/email or password' });
+  }
+
+  res.json({
+    success: true,
+    donor,
+    token: `donor_jwt_${Buffer.from(donor.id + ':' + Date.now()).toString('base64')}`,
+  });
+});
+
+// List all hospitals
+app.get('/api/hospitals', (req, res) => {
+  const list = Array.from(engine.hospitals.values()).map((h) => ({
+    id: h.id,
+    name: h.name,
+    license_number: h.license_number,
+    email: h.email,
+    phone: h.phone,
+    lat: h.lat,
+    lon: h.lon,
+    district: h.district,
+    blood_bank_incharge: h.blood_bank_incharge,
+  }));
+  res.json(list);
+});
+
+// List all donors
 app.get('/api/donors', (req, res) => {
   const donorsList = Array.from(engine.donors.values()).map((d) => ({
     id: d.id,
     full_name: d.full_name,
     phone: d.phone,
     blood_type: d.blood_type,
+    age: d.age,
+    weight_kg: d.weight_kg,
+    medications: d.medications,
+    diseases: d.diseases,
     reliability_score: d.reliability_score,
     is_available: d.is_available,
     last_donation_date: d.last_donation_date,
@@ -161,7 +293,7 @@ app.post('/api/emergency/request', (req, res) => {
   const requestId = uuidv4();
   const tierConfig = engine.getTierConfig(1); // Start Tier 1: <= 1 km
 
-  // Stage 1 & 2: Search candidates within Tier 1 radius
+  // Search candidates within Tier 1 radius
   const searchResult = engine.searchEligibleDonors(
     hospital.lat,
     hospital.lon,
@@ -337,7 +469,7 @@ app.get('/api/emergency/active', (req, res) => {
 // Donor responds to emergency request (ACCEPT or DECLINE)
 app.post('/api/emergency/:id/respond', (req, res) => {
   const { id } = req.params;
-  const { donor_id, response } = req.body; // response: 'ACCEPTED' | 'DECLINED'
+  const { donor_id, response } = req.body;
 
   const emergencyReq = engine.activeRequests.get(id);
   if (!emergencyReq) return res.status(404).json({ error: 'Emergency request not found' });
@@ -464,7 +596,7 @@ app.post('/api/emergency/verify-arrival', (req, res) => {
   });
 });
 
-// Reset seed state for testing
+// Reset seed state
 app.post('/api/simulation/reset', (req, res) => {
   engine.geoStores.clear();
   engine.donors.clear();
@@ -473,7 +605,7 @@ app.post('/api/simulation/reset', (req, res) => {
   engine.assignments.clear();
   loadSeedData();
   broadcast({ type: 'SIMULATION_RESET' });
-  res.json({ success: true, message: 'Simulation database reset to seed state' });
+  res.json({ success: true, message: 'Simulation database reset to clean state' });
 });
 
 const PORT = process.env.PORT || 4000;

@@ -13,49 +13,46 @@ function RecenterMap({ center, zoom }) {
   return null;
 }
 
-// Custom Leaflet DivIcons for Medical Radar
+// Custom Leaflet DivIcons for Light Ambient Medical Radar
 const createHospitalIcon = () =>
   L.divIcon({
     className: 'custom-hospital-icon',
     html: `
       <div class="relative flex items-center justify-center">
-        <div class="absolute w-10 h-10 bg-red-500 rounded-full animate-ping opacity-40"></div>
-        <div class="w-8 h-8 bg-red-600 border-2 border-white rounded-full flex items-center justify-center shadow-lg text-white font-bold text-xs">
+        <div class="absolute w-12 h-12 bg-red-500 rounded-full animate-ping opacity-30"></div>
+        <div class="w-9 h-9 bg-red-600 border-2 border-white rounded-full flex items-center justify-center shadow-lg text-white font-bold text-sm ring-2 ring-red-300">
           🏥
         </div>
       </div>
     `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
   });
 
 const createDonorIcon = (status, bloodType) => {
-  let bgColor = 'bg-amber-500';
-  let badgeText = 'PING';
+  let bgColor = 'bg-amber-500 text-white';
+  let borderColor = 'border-white';
 
   if (status === 'ACCEPTED') {
-    bgColor = 'bg-blue-500 animate-pulse';
-    badgeText = 'ROUTE';
+    bgColor = 'bg-blue-600 text-white animate-pulse';
   } else if (status === 'COMPLETED' || status === 'ARRIVED') {
-    bgColor = 'bg-emerald-500';
-    badgeText = 'ARRIVED';
+    bgColor = 'bg-emerald-600 text-white';
   } else if (status === 'DECLINED') {
-    bgColor = 'bg-slate-500';
-    badgeText = 'NO';
+    bgColor = 'bg-slate-400 text-white';
   }
 
   return L.divIcon({
     className: 'custom-donor-icon',
     html: `
       <div class="relative flex flex-col items-center">
-        <div class="px-1.5 py-0.5 ${bgColor} border border-white text-white font-black text-[10px] rounded-full shadow-md flex items-center gap-0.5">
+        <div class="px-2 py-1 ${bgColor} border-2 ${borderColor} font-black text-[11px] rounded-full shadow-lg flex items-center gap-1">
           <span>🩸</span><span>${bloodType}</span>
         </div>
-        <div class="w-2 h-2 ${bgColor} rotate-45 -mt-1 shadow"></div>
+        <div class="w-2.5 h-2.5 ${bgColor.split(' ')[0]} rotate-45 -mt-1 shadow-sm"></div>
       </div>
     `,
-    iconSize: [40, 24],
-    iconAnchor: [20, 24],
+    iconSize: [44, 26],
+    iconAnchor: [22, 26],
   });
 };
 
@@ -63,25 +60,28 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
   const hospitalPos = hospital ? [hospital.lat, hospital.lon] : [10.5276, 76.2144];
 
   return (
-    <div className="relative w-full h-[520px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-950">
+    <div className="relative w-full h-[520px] rounded-2xl overflow-hidden border border-slate-200/90 shadow-xl bg-slate-50">
       {/* Radar Overlay Controls / Legend */}
-      <div className="absolute top-3 left-3 z-[1000] bg-slate-900/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-slate-700 text-xs text-slate-200 shadow-lg space-y-1.5 pointer-events-none">
-        <div className="flex items-center gap-2 font-semibold text-slate-100">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>SPATIAL RADAR ACTIVE (Sub-5ms Geohash)</span>
+      <div className="absolute top-3 left-3 z-[1000] bg-white/95 backdrop-blur-md px-4 py-3 rounded-xl border border-slate-200 text-xs text-slate-800 shadow-md space-y-1.5 pointer-events-none">
+        <div className="flex items-center gap-2 font-bold text-slate-900">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>HOSPITAL DISPATCH RADAR ACTIVE</span>
+          <span className="text-[10px] bg-slate-100 border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-mono">
+            Sub-5ms Geohash
+          </span>
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+        <div className="flex items-center gap-3 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full border border-red-500 bg-red-500/20"></span>
-            <span>Tier 1 (1 km)</span>
+            <span className="w-2.5 h-2.5 rounded-full border border-red-500 bg-red-500/30"></span>
+            <span className="font-medium text-slate-700">Tier 1 (&le; 1 km)</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full border border-amber-500 bg-amber-500/20"></span>
-            <span>Tier 2 (5 km)</span>
+            <span className="w-2.5 h-2.5 rounded-full border border-amber-500 bg-amber-500/30"></span>
+            <span className="font-medium text-slate-700">Tier 2 (&le; 5 km)</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full border border-blue-500 bg-blue-500/20"></span>
-            <span>Tier 3 (15 km)</span>
+            <span className="w-2.5 h-2.5 rounded-full border border-blue-500 bg-blue-500/30"></span>
+            <span className="font-medium text-slate-700">Tier 3 (&le; 15 km)</span>
           </div>
         </div>
       </div>
@@ -94,10 +94,10 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
       >
         <RecenterMap center={hospitalPos} zoom={currentTier === 1 ? 14 : currentTier === 2 ? 12 : 11} />
 
-        {/* CartoDB Dark Matter Tiles */}
+        {/* CartoDB Positron Light Ambient Tiles */}
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
 
         {/* Tier 1 Radial Boundary: 1,000 meters */}
@@ -105,10 +105,10 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
           center={hospitalPos}
           radius={1000}
           pathOptions={{
-            color: '#EF4444',
+            color: '#DC2626',
             fillColor: '#EF4444',
-            fillOpacity: currentTier >= 1 ? 0.12 : 0.04,
-            weight: currentTier === 1 ? 2.5 : 1.5,
+            fillOpacity: currentTier >= 1 ? 0.16 : 0.05,
+            weight: currentTier === 1 ? 2.8 : 1.5,
             dashArray: currentTier === 1 ? null : '4 4',
           }}
           className={currentTier === 1 ? 'radar-ring' : ''}
@@ -119,9 +119,9 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
           center={hospitalPos}
           radius={5000}
           pathOptions={{
-            color: '#F59E0B',
+            color: '#D97706',
             fillColor: '#F59E0B',
-            fillOpacity: currentTier >= 2 ? 0.08 : 0.02,
+            fillOpacity: currentTier >= 2 ? 0.10 : 0.03,
             weight: currentTier === 2 ? 2.5 : 1,
             dashArray: currentTier === 2 ? null : '6 6',
           }}
@@ -133,9 +133,9 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
           center={hospitalPos}
           radius={15000}
           pathOptions={{
-            color: '#3B82F6',
+            color: '#2563EB',
             fillColor: '#3B82F6',
-            fillOpacity: currentTier >= 3 ? 0.05 : 0.01,
+            fillOpacity: currentTier >= 3 ? 0.06 : 0.015,
             weight: currentTier === 3 ? 2 : 1,
             dashArray: '8 8',
           }}
@@ -144,15 +144,20 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
         {/* Hospital Center Marker */}
         {hospital && (
           <Marker position={hospitalPos} icon={createHospitalIcon()}>
-            <Popup className="dark-popup">
-              <div className="space-y-1">
-                <div className="font-bold text-sm text-red-400">🏥 {hospital.name}</div>
-                <div className="text-xs text-slate-300">Licence: {hospital.license_number}</div>
-                <div className="text-xs text-slate-400">Coords: {hospital.lat.toFixed(4)}, {hospital.lon.toFixed(4)}</div>
+            <Popup className="light-popup">
+              <div className="space-y-1.5 p-0.5">
+                <div className="font-bold text-sm text-red-600 flex items-center gap-1.5">
+                  <span>🏥</span>
+                  <span>{hospital.name}</span>
+                </div>
+                <div className="text-xs text-slate-600">License: <span className="font-mono font-medium text-slate-800">{hospital.license_number}</span></div>
+                <div className="text-xs text-slate-500">GPS: {hospital.lat.toFixed(4)}, {hospital.lon.toFixed(4)}</div>
                 {activeRequest && (
-                  <div className="mt-2 pt-2 border-t border-slate-700 text-xs">
-                    <span className="font-semibold text-amber-400">ACTIVE SOS: </span>
-                    <span className="text-white font-bold">{activeRequest.units_needed} Units of {activeRequest.blood_type}</span>
+                  <div className="mt-2 pt-2 border-t border-slate-100 text-xs">
+                    <span className="font-bold text-red-600 uppercase text-[10px]">Active Emergency: </span>
+                    <div className="font-bold text-slate-900 mt-0.5">
+                      {activeRequest.units_needed} Units of {activeRequest.blood_type}
+                    </div>
                   </div>
                 )}
               </div>
@@ -169,29 +174,31 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
               position={[asgn.lat, asgn.lon]}
               icon={createDonorIcon(asgn.status, asgn.donor_blood_type)}
             >
-              <Popup className="dark-popup">
-                <div className="space-y-1 text-xs">
-                  <div className="font-bold text-white text-sm flex items-center justify-between">
+              <Popup className="light-popup">
+                <div className="space-y-1.5 text-xs p-0.5">
+                  <div className="font-bold text-slate-900 text-sm flex items-center justify-between border-b border-slate-100 pb-1">
                     <span>{asgn.donor_name}</span>
-                    <span className="px-1.5 py-0.5 bg-red-950 text-red-400 rounded text-[11px] font-mono">
+                    <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded font-mono font-bold text-xs">
                       {asgn.donor_blood_type}
                     </span>
                   </div>
-                  <div className="text-slate-300">
-                    <span className="text-slate-400">Distance:</span> <strong className="text-white">{asgn.distance_km} km</strong>
+                  <div className="text-slate-600">
+                    Distance: <strong className="text-slate-900">{asgn.distance_km} km</strong>
                   </div>
                   {asgn.priority_score && (
-                    <div className="text-slate-300">
-                      <span className="text-slate-400">Composite Score P(d):</span>{' '}
-                      <strong className="text-emerald-400 font-mono">{asgn.priority_score}</strong>
+                    <div className="text-slate-600">
+                      Composite Score P(d):{' '}
+                      <strong className="text-emerald-700 font-mono bg-emerald-50 px-1 rounded border border-emerald-200">
+                        {asgn.priority_score}
+                      </strong>
                     </div>
                   )}
-                  <div className="text-slate-300 flex items-center gap-1.5 pt-1">
-                    <span className="text-slate-400">Status:</span>
+                  <div className="text-slate-600 flex items-center gap-1.5 pt-1">
+                    <span>Response:</span>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      asgn.status === 'ACCEPTED' ? 'bg-blue-900/60 text-blue-300 border border-blue-600' :
-                      asgn.status === 'COMPLETED' ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-600' :
-                      'bg-amber-900/60 text-amber-300 border border-amber-600'
+                      asgn.status === 'ACCEPTED' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                      asgn.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                      'bg-amber-100 text-amber-800 border border-amber-200'
                     }`}>
                       {asgn.status}
                     </span>

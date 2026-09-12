@@ -3,3 +3,6 @@ dist/
 .DS_Store
 *.log
 .env
+*.apk
+mobile-client/pulse_dial_app/build/
+.dart_tool/
