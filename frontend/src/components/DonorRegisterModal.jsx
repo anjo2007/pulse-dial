@@ -8,7 +8,8 @@ export default function DonorRegisterModal({ isOpen, onClose, onRegisterSuccess 
   const [bloodType, setBloodType] = useState('O-');
   const [age, setAge] = useState('27');
   const [weightKg, setWeightKg] = useState('68');
-  const [lastDonationDate, setLastDonationDate] = useState('2026-03-15');
+  const [lastDonationDate, setLastDonationDate] = useState('');
+  const [isFirstTimeDonor, setIsFirstTimeDonor] = useState(false);
   const [medications, setMedications] = useState('None');
   const [diseases, setDiseases] = useState('None (Healthy)');
   const [loading, setLoading] = useState(false);
@@ -44,7 +45,7 @@ export default function DonorRegisterModal({ isOpen, onClose, onRegisterSuccess 
         blood_type: bloodType,
         age: parseInt(age),
         weight_kg: parseInt(weightKg),
-        last_donation_date: lastDonationDate.trim() || 'Never Donated',
+        last_donation_date: isFirstTimeDonor || !lastDonationDate.trim() ? 'Never Donated' : lastDonationDate.trim(),
         medications: medications.trim() || 'None',
         diseases: diseases.trim() || 'None (Healthy)',
       };
@@ -191,19 +192,57 @@ export default function DonorRegisterModal({ isOpen, onClose, onRegisterSuccess 
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-              Last Blood Donated Date
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                Last Blood Donated Date
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextState = !isFirstTimeDonor;
+                  setIsFirstTimeDonor(nextState);
+                  if (nextState) setLastDonationDate('');
+                }}
+                className={`text-[11px] font-bold px-2.5 py-1 rounded-xl border transition flex items-center gap-1 ${
+                  isFirstTimeDonor
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                }`}
+              >
+                {isFirstTimeDonor ? '✓ First-Time Donor' : '+ First-Time Donor (Never Donated)'}
+              </button>
+            </div>
             <div className="relative">
-              <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
               <input
-                type="text"
-                placeholder="YYYY-MM-DD (or leave blank if first time)"
+                type="date"
+                disabled={isFirstTimeDonor}
+                max={new Date().toISOString().split('T')[0]}
+                min="1990-01-01"
                 value={lastDonationDate}
-                onChange={(e) => setLastDonationDate(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-red-500 focus:outline-none"
+                onChange={(e) => {
+                  setLastDonationDate(e.target.value);
+                  if (e.target.value) setIsFirstTimeDonor(false);
+                }}
+                onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                className={`w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-red-500 focus:outline-none cursor-pointer ${
+                  isFirstTimeDonor ? 'opacity-50 cursor-not-allowed bg-slate-100 text-slate-400' : ''
+                }`}
               />
             </div>
+            {isFirstTimeDonor ? (
+              <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">
+                ✓ First-time donor selected (immediately eligible for emergency dispatch).
+              </span>
+            ) : lastDonationDate ? (
+              <span className="text-[11px] text-slate-500 font-medium mt-1 block">
+                Selected date: {lastDonationDate}. 90-day clinical cooldown is automatically calculated.
+              </span>
+            ) : (
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                Pick a date from the calendar, or tap &quot;First-Time Donor&quot; if never donated.
+              </span>
+            )}
           </div>
 
           <div>

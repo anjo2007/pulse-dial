@@ -635,9 +635,31 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: lastDonatedCtrl,
+                  readOnly: true,
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now().subtract(const Duration(days: 90)),
+                      firstDate: DateTime(1990),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        lastDonatedCtrl.text =
+                            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                      });
+                    }
+                  },
                   decoration: InputDecoration(
-                    labelText: 'Last Donated Date (YYYY-MM-DD)',
+                    labelText: 'Last Donated Date',
+                    hintText: 'Tap to pick date, or leave empty if first time',
                     prefixIcon: const Icon(Icons.calendar_today_rounded, size: 20),
+                    suffixIcon: lastDonatedCtrl.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () => setState(() => lastDonatedCtrl.clear()),
+                          )
+                        : null,
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
