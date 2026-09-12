@@ -6,3 +6,8 @@ dist/
 *.apk
 mobile-client/pulse_dial_app/build/
 .dart_tool/
+**/google-services.json
+!**/google-services.json.example
+.env*.local
+*.pem
+auth_users*.json

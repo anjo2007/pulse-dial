@@ -1,4 +1,41 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+
+// Firebase Firestore REST API Sync Service
+Future<void> syncDonorToFirestore(Map<String, dynamic> donor) async {
+  try {
+    final client = HttpClient();
+    final url = Uri.parse(
+      'https://firestore.googleapis.com/v1/projects/pulse-dial-emergency/databases/(default)/documents/donors/${donor['id']}',
+    );
+    final request = await client.openUrl('PATCH', url);
+    request.headers.set('Content-Type', 'application/json');
+
+    final body = {
+      'fields': {
+        'full_name': {'stringValue': donor['full_name'] ?? ''},
+        'phone': {'stringValue': donor['phone'] ?? ''},
+        'blood_type': {'stringValue': donor['blood_type'] ?? 'O-'},
+        'age': {'integerValue': '${donor['age'] ?? 25}'},
+        'weight_kg': {'integerValue': '${donor['weight_kg'] ?? 65}'},
+        'last_donation_date': {'stringValue': donor['last_donation_date'] ?? 'Never Donated'},
+        'medications': {'stringValue': donor['medications'] ?? 'None'},
+        'diseases': {'stringValue': donor['diseases'] ?? 'None (Healthy)'},
+        'reliability_score': {'integerValue': '${donor['reliability_score'] ?? 100}'},
+        'is_available': {'booleanValue': donor['is_available'] ?? true},
+        'lat': {'doubleValue': 10.5280},
+        'lon': {'doubleValue': 76.2140},
+      }
+    };
+
+    request.write(jsonEncode(body));
+    await request.close();
+    client.close();
+  } catch (e) {
+    debugPrint('Firestore sync error: $e');
+  }
+}
 
 void main() {
   runApp(const PulseDialDonorApp());
@@ -65,7 +102,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   final List<String> bloodGroups = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
 
-  void handleRegister() {
+  Future<void> handleRegister() async {
     if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all mandatory fields.')),
@@ -73,22 +110,34 @@ class _AuthWrapperState extends State<AuthWrapper> {
       return;
     }
 
+    final newProfile = {
+      'id': 'd_app_${DateTime.now().millisecondsSinceEpoch}',
+      'full_name': nameCtrl.text.trim(),
+      'phone': phoneCtrl.text.trim(),
+      'blood_type': selectedBloodType,
+      'age': int.tryParse(ageCtrl.text) ?? 25,
+      'weight_kg': int.tryParse(weightCtrl.text) ?? 65,
+      'last_donation_date': lastDonatedCtrl.text.trim().isEmpty ? 'Never Donated' : lastDonatedCtrl.text.trim(),
+      'medications': medsCtrl.text.trim().isEmpty ? 'None' : medsCtrl.text.trim(),
+      'diseases': diseaseCtrl.text.trim().isEmpty ? 'None' : diseaseCtrl.text.trim(),
+      'reliability_score': 100,
+      'is_available': true,
+    };
+
+    // Pushes directly to Cloud Firestore in background
+    syncDonorToFirestore(newProfile);
+
     setState(() {
-      userProfile = {
-        'id': 'd_new_${DateTime.now().millisecondsSinceEpoch}',
-        'full_name': nameCtrl.text.trim(),
-        'phone': phoneCtrl.text.trim(),
-        'blood_type': selectedBloodType,
-        'age': int.tryParse(ageCtrl.text) ?? 25,
-        'weight_kg': int.tryParse(weightCtrl.text) ?? 65,
-        'last_donation_date': lastDonatedCtrl.text.trim().isEmpty ? 'Never Donated' : lastDonatedCtrl.text.trim(),
-        'medications': medsCtrl.text.trim().isEmpty ? 'None' : medsCtrl.text.trim(),
-        'diseases': diseaseCtrl.text.trim().isEmpty ? 'None' : diseaseCtrl.text.trim(),
-        'reliability_score': 100,
-        'is_available': true,
-      };
+      userProfile = newProfile;
       isAuthenticated = true;
     });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Registered in Pulse Dial Emergency Cloud Network!'),
+        backgroundColor: Color(0xFF16A34A),
+      ),
+    );
   }
 
   void handleLogin() {

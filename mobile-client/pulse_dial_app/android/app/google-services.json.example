@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "18091795649",
+    "project_id": "pulse-dial-emergency",
+    "storage_bucket": "pulse-dial-emergency.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:18091795649:android:e5afff8709355f6ecf6040",
+        "android_client_info": {
+          "package_name": "org.pulsedial.pulse_dial_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "YOUR_FIREBASE_API_KEY_HERE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
