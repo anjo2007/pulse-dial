@@ -4,11 +4,14 @@
   "type": "module",
   "description": "Geofenced Rapid Emergency Blood Dispatch System",
   "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "postinstall": "cd frontend && npm install",
+    "start": "cd frontend && npm run preview",
     "start:backend": "node backend/src/server.js",
-    "start:frontend": "npm.cmd --prefix frontend run dev",
+    "start:frontend": "npm --prefix frontend run dev",
     "drill": "node simulator/drill.js",
     "test": "node simulator/drill.js",
-    "build:frontend": "npm.cmd --prefix frontend run build"
+    "build:frontend": "cd frontend && npm run build"
   },
   "keywords": [
     "blood-dispatch",
