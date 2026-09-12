@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -16,13 +17,13 @@ Future<void> syncDonorToFirestore(Map<String, dynamic> donor) async {
       'fields': {
         'full_name': {'stringValue': donor['full_name'] ?? ''},
         'phone': {'stringValue': donor['phone'] ?? ''},
-        'blood_type': {'stringValue': donor['blood_type'] ?? 'O-'},
+        'blood_type': {'stringValue': donor['blood_type'] ?? 'B-'},
         'age': {'integerValue': '${donor['age'] ?? 25}'},
         'weight_kg': {'integerValue': '${donor['weight_kg'] ?? 65}'},
         'last_donation_date': {'stringValue': donor['last_donation_date'] ?? 'Never Donated'},
         'medications': {'stringValue': donor['medications'] ?? 'None'},
         'diseases': {'stringValue': donor['diseases'] ?? 'None (Healthy)'},
-        'reliability_score': {'integerValue': '${donor['reliability_score'] ?? 100}'},
+        'reliability_score': {'integerValue': '${donor['reliability_score'] ?? 140}'},
         'is_available': {'booleanValue': donor['is_available'] ?? true},
         'lat': {'doubleValue': 10.5280},
         'lon': {'doubleValue': 76.2140},
@@ -51,18 +52,22 @@ class PulseDialDonorApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFDC2626),
           brightness: Brightness.light,
+          primary: const Color(0xFFDC2626),
+          surface: Colors.white,
         ),
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
       ),
       home: const AuthWrapper(),
     );
   }
 }
 
-// Authentication Wrapper: handles Login, Signup, and Main Dashboard
+// ==========================================================
+// AUTHENTICATION SCREEN: LOGIN & CLINICAL REGISTRATION
+// ==========================================================
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
@@ -73,13 +78,14 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   bool isAuthenticated = false;
   bool isLoginView = true;
+  bool isSubmitting = false;
 
   // Active user profile state
   Map<String, dynamic> userProfile = {
-    'id': 'd001-tier1-o-neg',
+    'id': 'd001-tier1-b-neg',
     'full_name': 'Arjun Menon',
     'phone': '+91-9900000001',
-    'blood_type': 'O-',
+    'blood_type': 'B-',
     'age': 28,
     'weight_kg': 72,
     'last_donation_date': '2026-04-10',
@@ -98,12 +104,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
   final lastDonatedCtrl = TextEditingController(text: '2026-04-10');
   final medsCtrl = TextEditingController(text: 'None');
   final diseaseCtrl = TextEditingController(text: 'None');
-  String selectedBloodType = 'O-';
+  String selectedBloodType = 'B-';
 
   final List<String> bloodGroups = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
 
   Future<void> handleRegister() async {
-    if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) {
+    if (nameCtrl.text.trim().isEmpty || phoneCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all mandatory fields.')),
       );
@@ -124,11 +130,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
       'is_available': true,
     };
 
-    // Pushes directly to Cloud Firestore in background
+    setState(() => isSubmitting = true);
     syncDonorToFirestore(newProfile);
 
     setState(() {
       userProfile = newProfile;
+      isSubmitting = false;
       isAuthenticated = true;
     });
 
@@ -141,9 +148,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   void handleLogin() {
-    setState(() {
-      isAuthenticated = true;
-    });
+    setState(() => isAuthenticated = true);
   }
 
   @override
@@ -151,18 +156,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (isAuthenticated) {
       return DonorHomeScreen(
         profile: userProfile,
-        onLogout: () {
-          setState(() {
-            isAuthenticated = false;
-          });
-        },
+        onLogout: () => setState(() => isAuthenticated = false),
       );
     }
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -171,36 +173,45 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 child: Column(
                   children: [
                     Container(
-                      width: 64,
-                      height: 64,
+                      width: 68,
+                      height: 68,
                       decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        border: Border.all(color: Colors.red.shade200, width: 2),
-                        borderRadius: BorderRadius.circular(20),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: const Color(0xFFFECACA), width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.red.withValues(alpha: 0.1),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(Icons.favorite, color: Color(0xFFDC2626), size: 36),
+                      child: const Icon(Icons.favorite_rounded, color: Color(0xFFDC2626), size: 36),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     const Text(
                       'PULSE DIAL',
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 24,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
+                        letterSpacing: 1.5,
                         color: Color(0xFF0F172A),
                       ),
                     ),
+                    const SizedBox(height: 4),
                     const Text(
-                      'Citizen Donor Emergency Network',
-                      style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                      'Location-Blind Emergency Blood Dispatch Network',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
 
-              // Mode Switcher (Login vs Create Account)
+              // Mode Switcher (Sign In vs Register Profile)
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
@@ -219,7 +230,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                             color: isLoginView ? Colors.white : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: isLoginView
-                                ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)]
+                                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)]
                                 : [],
                           ),
                           alignment: Alignment.center,
@@ -243,7 +254,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                             color: !isLoginView ? Colors.white : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: !isLoginView
-                                ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)]
+                                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)]
                                 : [],
                           ),
                           alignment: Alignment.center,
@@ -261,133 +272,89 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // LOGIN FORM
+              // SIGN IN VIEW
               if (isLoginView) ...[
-                const Text(
-                  'Welcome Back Donor',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Sign in with your registered phone number to receive life-saving emergency call alerts.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                ),
-                const SizedBox(height: 18),
-
                 TextField(
                   controller: phoneCtrl,
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
                     labelText: 'Phone Number',
                     hintText: '+91-9900000001',
-                    prefixIcon: const Icon(Icons.phone_android),
+                    prefixIcon: const Icon(Icons.phone_android_rounded, size: 20),
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   ),
                 ),
-                const SizedBox(height: 14),
-
+                const SizedBox(height: 12),
                 TextField(
                   controller: passCtrl,
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    hintText: '••••••••',
-                    prefixIcon: const Icon(Icons.lock_outline),
+                    prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   ),
                 ),
                 const SizedBox(height: 20),
-
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFDC2626),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 2,
                   ),
                   onPressed: handleLogin,
-                  child: const Text('SIGN IN TO DONOR RADAR', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text('SIGN IN TO DONOR NETWORK', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                 ),
-              ],
-
-              // CREATE ACCOUNT / REGISTRATION FORM (WITH ALL REQUIRED MEDICAL DETAILS)
-              if (!isLoginView) ...[
-                const Text(
-                  'Donor Registration Profile',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Required per National Blood Transfusion guidelines for emergency spatial matching:',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                ),
-                const SizedBox(height: 16),
-
+              ] else ...[
+                // CREATE CLINICAL ACCOUNT VIEW
                 TextField(
                   controller: nameCtrl,
                   decoration: InputDecoration(
                     labelText: 'Full Name *',
-                    prefixIcon: const Icon(Icons.person_outline),
+                    prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   ),
                 ),
                 const SizedBox(height: 12),
-
                 TextField(
                   controller: phoneCtrl,
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
-                    labelText: 'Phone Number (OTP verified) *',
-                    prefixIcon: const Icon(Icons.phone),
+                    labelText: 'Phone Number *',
+                    prefixIcon: const Icon(Icons.phone_android_rounded, size: 20),
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   ),
                 ),
                 const SizedBox(height: 12),
-
-                TextField(
-                  controller: passCtrl,
-                  obscureText: true,
+                DropdownButtonFormField<String>(
+                  initialValue: selectedBloodType,
                   decoration: InputDecoration(
-                    labelText: 'Password *',
-                    prefixIcon: const Icon(Icons.lock_outline),
+                    labelText: 'Blood Group *',
+                    prefixIcon: const Icon(Icons.bloodtype_outlined, color: Color(0xFFDC2626), size: 20),
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   ),
+                  items: bloodGroups.map((b) => DropdownMenuItem(value: b, child: Text(b, style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
+                  onChanged: (v) => setState(() => selectedBloodType = v ?? 'B-'),
                 ),
-                const SizedBox(height: 14),
-
-                // Blood Group Selector
-                const Text('Blood Group *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: bloodGroups.map((bg) {
-                    final isSel = selectedBloodType == bg;
-                    return ChoiceChip(
-                      label: Text(bg, style: TextStyle(fontWeight: FontWeight.bold, color: isSel ? Colors.white : Colors.black87)),
-                      selected: isSel,
-                      selectedColor: const Color(0xFFDC2626),
-                      backgroundColor: Colors.white,
-                      onSelected: (val) {
-                        if (val) setState(() => selectedBloodType = bg);
-                      },
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 14),
-
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
@@ -398,7 +365,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
                           labelText: 'Age (18-65) *',
                           filled: true,
                           fillColor: Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                     ),
@@ -411,53 +379,52 @@ class _AuthWrapperState extends State<AuthWrapper> {
                           labelText: 'Weight (kg, ≥50) *',
                           filled: true,
                           fillColor: Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-
                 TextField(
                   controller: lastDonatedCtrl,
                   decoration: InputDecoration(
-                    labelText: 'Last Blood Donated Date (YYYY-MM-DD)',
-                    hintText: 'e.g. 2026-04-10 or leave blank if first time',
-                    prefixIcon: const Icon(Icons.calendar_today_outlined),
+                    labelText: 'Last Donated Date (YYYY-MM-DD)',
+                    prefixIcon: const Icon(Icons.calendar_today_rounded, size: 20),
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   ),
                 ),
                 const SizedBox(height: 12),
-
                 TextField(
                   controller: medsCtrl,
                   decoration: InputDecoration(
-                    labelText: 'Current Medications (if any)',
-                    hintText: 'e.g. None or Blood Pressure, Antibiotics',
-                    prefixIcon: const Icon(Icons.medication_outlined),
+                    labelText: 'Current Medications',
+                    hintText: 'e.g. None or Blood Pressure',
+                    prefixIcon: const Icon(Icons.medication_outlined, size: 20),
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   ),
                 ),
                 const SizedBox(height: 12),
-
                 TextField(
                   controller: diseaseCtrl,
                   decoration: InputDecoration(
-                    labelText: 'Chronic Diseases / Medical History',
-                    hintText: 'e.g. None, Diabetes, Asthma, Heart Condition',
-                    prefixIcon: const Icon(Icons.healing_outlined),
+                    labelText: 'Medical History / Chronic Conditions',
+                    hintText: 'e.g. None (Healthy)',
+                    prefixIcon: const Icon(Icons.healing_outlined, size: 20),
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   ),
                 ),
                 const SizedBox(height: 20),
-
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFDC2626),
@@ -465,16 +432,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  onPressed: handleRegister,
-                  child: const Text('REGISTER CLINICAL DONOR PROFILE', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: isSubmitting ? null : handleRegister,
+                  child: Text(isSubmitting ? 'REGISTERING...' : 'REGISTER CLINICAL DONOR PROFILE', style: const TextStyle(fontWeight: FontWeight.w900)),
                 ),
               ],
 
               const SizedBox(height: 24),
               const Center(
                 child: Text(
-                  'Pulse Dial Emergency Network • Encrypted & Medical Standard Compliant',
-                  style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+                  'Privacy-First Architecture • Zero Continuous Location Tracking',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
                 ),
               ),
             ],
@@ -485,7 +452,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 }
 
-// MAIN DASHBOARD FOR CITIZEN DONOR
+// ==========================================================
+// MAIN DASHBOARD: LOCATION-BLIND PROGRESSIVE RING & IVR ENGINE
+// ==========================================================
 class DonorHomeScreen extends StatefulWidget {
   final Map<String, dynamic> profile;
   final VoidCallback onLogout;
@@ -501,43 +470,214 @@ class DonorHomeScreen extends StatefulWidget {
 }
 
 class _DonorHomeScreenState extends State<DonorHomeScreen> {
-  late bool isAvailable;
-  late int karmaScore;
-  bool overlayPermissionGranted = true; // SYSTEM_ALERT_WINDOW permission
+  // Simulated Location & Distance to Emergency Hospital
+  int simulatedDistanceMeters = 250; // 250m (Inside Wave 1 <500m)
+  bool isAvailable = true;
+  int rScore = 140;
+  DateTime? cooldownUntil;
+
+  // Active Simulated Emergency Broadcast (matches Diagram: B- at TSR Hospital)
+  Map<String, dynamic> activeBroadcast = {
+    'hospital_name': 'TSR Hospital',
+    'hospital_coordinates': '10.5276° N, 76.2144° E',
+    'blood_group': 'B-',
+    'current_wave': 1,
+    'current_wave_radius_meters': 500, // Wave 1: 500m, Wave 2: 2000m, Wave 3: 5000m
+  };
+
+  // State flags for Flow Diagram steps
+  bool headsUpDismissed = false;
   bool showIncomingCall = false;
-  bool showPreScreening = false;
+  bool callConnected = false;
+  int callDurationSeconds = 0;
+  Timer? callTimer;
+
+  // IVR Voice Call Engine State
+  String ivrSpeech = 'Press 1 to Accept.\nPress 2 to Decline.\nPress 3 to set 90-day Cooldown.';
+  String ivrInputBuffer = '';
+  bool isAwaitingDateEntry = false; // For Keypad 3 (DDMMYYYY)
+  String? generatedArrivalOtp; // 6-digit OTP for Keypad 1
   bool isEnRoute = false;
+  bool arrivalVerifiedAtHospital = false;
 
-  // 4 Pre-screening questions
-  bool q1 = false;
-  bool q2 = false;
-  bool q3 = false;
-  bool q4 = false;
-
-  bool get allPreScreenPassed => q1 && q2 && q3 && q4;
+  // Check if device coarse GPS is inside current wave radius
+  bool get isInsideRadius => simulatedDistanceMeters <= (activeBroadcast['current_wave_radius_meters'] as int);
+  bool get isOnCooldown => cooldownUntil != null && DateTime.now().isBefore(cooldownUntil!);
 
   @override
   void initState() {
     super.initState();
     isAvailable = widget.profile['is_available'] ?? true;
-    karmaScore = widget.profile['reliability_score'] ?? 100;
+    rScore = widget.profile['reliability_score'] ?? 140;
+  }
+
+  @override
+  void dispose() {
+    callTimer?.cancel();
+    super.dispose();
+  }
+
+  // TWO-STEP HEADS-UP ACTION 1: [ CANNOT DONATE ]
+  void handleCannotDonate() {
+    setState(() {
+      headsUpDismissed = true;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Alert dismissed. Device remains on standby.')),
+    );
+  }
+
+  // TWO-STEP HEADS-UP ACTION 2: [ I AM WILLING ]
+  void handleIAmWilling() {
+    setState(() {
+      headsUpDismissed = false;
+      showIncomingCall = true;
+    });
+  }
+
+  // INCOMING CALL: ANSWER
+  void handleAnswerCall() {
+    setState(() {
+      showIncomingCall = false;
+      callConnected = true;
+      callDurationSeconds = 1;
+      ivrSpeech = 'Urgent B- blood required at TSR Hospital.\nPress 1 to Accept.\nPress 2 to Decline.\nPress 3 to set 90-day Cooldown.';
+    });
+
+    callTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (mounted && callConnected) {
+        setState(() => callDurationSeconds++);
+      }
+    });
+  }
+
+  // INCOMING CALL: DECLINE
+  void handleDeclineCall() {
+    setState(() {
+      showIncomingCall = false;
+      callConnected = false;
+    });
+  }
+
+  // DTMF KEYPAD PRESS HANDLER (1, 2, 3)
+  void handleKeypadPress(String digit) {
+    if (!callConnected) return;
+
+    // Sub-mode for Keypad 3: Collecting 8-digit date (DDMMYYYY)
+    if (isAwaitingDateEntry) {
+      if (ivrInputBuffer.length < 8) {
+        setState(() => ivrInputBuffer += digit);
+      }
+      if (ivrInputBuffer.length == 8) {
+        // Complete 8-digit date received
+        processCooldownDate(ivrInputBuffer);
+      }
+      return;
+    }
+
+    if (digit == '1') {
+      // KEYPAD 1: ACCEPT EMERGENCY
+      final otp = '${100000 + DateTime.now().millisecondsSinceEpoch % 900000}';
+      setState(() {
+        generatedArrivalOtp = otp;
+        isEnRoute = true;
+        ivrSpeech = 'Emergency Accepted! Your 6-digit Arrival OTP is $otp. Hospital notified. Directions dispatched.';
+      });
+
+      // Auto-terminate call after 3.5 seconds
+      Future.delayed(const Duration(milliseconds: 3500), () {
+        if (mounted) {
+          setState(() {
+            callConnected = false;
+            callTimer?.cancel();
+          });
+        }
+      });
+    } else if (digit == '2') {
+      // KEYPAD 2: DECLINE ALERT
+      setState(() {
+        ivrSpeech = 'Emergency dispatch declined. You remain active in donor pool for future alerts.';
+      });
+      Future.delayed(const Duration(milliseconds: 2500), () {
+        if (mounted) {
+          setState(() {
+            callConnected = false;
+            callTimer?.cancel();
+          });
+        }
+      });
+    } else if (digit == '3') {
+      // KEYPAD 3: SELF-SERVICE COOLDOWN
+      setState(() {
+        isAwaitingDateEntry = true;
+        ivrInputBuffer = '';
+        ivrSpeech = 'Voice Prompt: Enter your donation date as 8 digits: Day-Day-Month-Month-Year-Year-Year-Year.';
+      });
+    }
+  }
+
+  void processCooldownDate(String dateDigits) {
+    try {
+      final day = int.parse(dateDigits.substring(0, 2));
+      final month = int.parse(dateDigits.substring(2, 4));
+      final year = int.parse(dateDigits.substring(4, 8));
+      final donationDate = DateTime(year, month, day);
+      final lockUntil = donationDate.add(const Duration(days: 90));
+
+      setState(() {
+        cooldownUntil = lockUntil;
+        isAwaitingDateEntry = false;
+        ivrSpeech = 'Donation date recorded ($dateDigits). Cooldown locked for 90 days until ${lockUntil.day}/${lockUntil.month}/${lockUntil.year}. Call terminating.';
+      });
+
+      Future.delayed(const Duration(milliseconds: 3500), () {
+        if (mounted) {
+          setState(() {
+            callConnected = false;
+            callTimer?.cancel();
+          });
+        }
+      });
+    } catch (e) {
+      setState(() {
+        ivrInputBuffer = '';
+        ivrSpeech = 'Invalid date format. Please enter 8 digits as DDMMYYYY.';
+      });
+    }
+  }
+
+  // PHYSICAL ARRIVAL VERIFICATION (Simulates hospital reception verifying OTP)
+  void handleSimulateHospitalVerification() {
+    setState(() {
+      arrivalVerifiedAtHospital = true;
+      rScore += 15; // +15 Reliability Score
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🎉 Hospital verified 6-digit OTP! +15 Reliability Karma Credited.'),
+        backgroundColor: Color(0xFF16A34A),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
+        shadowColor: Colors.black.withValues(alpha: 0.05),
         title: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(10),
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFECACA)),
               ),
-              child: const Icon(Icons.favorite, color: Color(0xFFDC2626), size: 20),
+              child: const Icon(Icons.favorite_rounded, color: Color(0xFFDC2626), size: 20),
             ),
             const SizedBox(width: 10),
             Column(
@@ -547,21 +687,21 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                   widget.profile['full_name'] ?? 'Donor',
                   style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A)),
                 ),
-                const Text('Emergency Donor Active', style: TextStyle(fontSize: 11, color: Color(0xFF16A34A))),
+                Text(
+                  isOnCooldown ? 'Cooldown Locked' : 'Active Emergency Standby',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isOnCooldown ? const Color(0xFFD97706) : const Color(0xFF16A34A),
+                  ),
+                ),
               ],
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.phone_in_talk, color: Color(0xFFDC2626)),
-            tooltip: 'Simulate Incoming Emergency Call',
-            onPressed: () {
-              setState(() => showIncomingCall = true);
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Color(0xFF64748B)),
+            icon: const Icon(Icons.logout_rounded, color: Color(0xFF64748B)),
             tooltip: 'Sign Out',
             onPressed: widget.onLogout,
           ),
@@ -574,50 +714,51 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Permission Banner: Display Over Other Apps (SYSTEM_ALERT_WINDOW)
+                // 1. PRIVACY & COARSE GPS STATUS CARD
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: overlayPermissionGranted ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: overlayPermissionGranted ? const Color(0xFFBBF7D0) : const Color(0xFFFDE68A),
-                    ),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+                    ],
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        overlayPermissionGranted ? Icons.layers : Icons.warning_amber_rounded,
-                        color: overlayPermissionGranted ? const Color(0xFF16A34A) : const Color(0xFFD97706),
-                        size: 24,
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(10)),
+                            child: const Icon(Icons.shield_outlined, color: Color(0xFF16A34A), size: 18),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('Zero-Knowledge Location Privacy', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(8)),
+                            child: const Text('LOCATION-BLIND', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              overlayPermissionGranted
-                                  ? 'Overlay Permission: Granted ✅'
-                                  : 'Draw Over Other Apps Permission Needed',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F172A)),
-                            ),
-                            const Text(
-                              'Allows Pulse Dial to ring and display emergency calls over any open application.',
-                              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                            ),
-                          ],
-                        ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Hospital broadcasts emergency ring. Device checks coarse GPS math locally. Zero continuous GPS tracking uploaded.',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B), height: 1.4),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 14),
 
-                // Donor Card
+                // 2. DONOR IDENTITY & RELIABILITY SCORE (R-SCORE) CARD
                 Card(
                   color: Colors.white,
-                  elevation: 1,
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                     side: const BorderSide(color: Color(0xFFE2E8F0)),
@@ -627,17 +768,17 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                     child: Row(
                       children: [
                         Container(
-                          width: 56,
-                          height: 56,
+                          width: 58,
+                          height: 58,
                           decoration: BoxDecoration(
                             color: const Color(0xFFFEF2F2),
                             border: Border.all(color: const Color(0xFFFECACA), width: 2),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(18),
                           ),
                           alignment: Alignment.center,
                           child: Text(
-                            widget.profile['blood_type'] ?? 'O-',
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFFDC2626)),
+                            widget.profile['blood_type'] ?? 'B-',
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFFDC2626)),
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -645,25 +786,31 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                widget.profile['full_name'] ?? 'Donor',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                              Row(
+                                children: [
+                                  Text(
+                                    widget.profile['full_name'] ?? 'Donor',
+                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A)),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(6)),
+                                    child: Text('R-SCORE: $rScore', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFFB45309))),
+                                  ),
+                                ],
                               ),
+                              const SizedBox(height: 3),
+                              Text(widget.profile['phone'] ?? '+91-9900000001', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontFamily: 'monospace')),
+                              const SizedBox(height: 4),
                               Text(
-                                '${widget.profile['age']} yrs • ${widget.profile['weight_kg']} kg • ${widget.profile['phone']}',
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFFBEB),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: const Color(0xFFFDE68A)),
-                                ),
-                                child: Text(
-                                  '⭐ Karma Score: $karmaScore / 150',
-                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                                isOnCooldown
+                                    ? '🔒 Cooldown Locked until ${cooldownUntil!.day}/${cooldownUntil!.month}/${cooldownUntil!.year}'
+                                    : '🟢 Cooldown Status: Eligible & Ready',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: isOnCooldown ? const Color(0xFFD97706) : const Color(0xFF16A34A),
                                 ),
                               ),
                             ],
@@ -675,208 +822,390 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                 ),
                 const SizedBox(height: 14),
 
-                // Availability Switch
-                Card(
-                  color: isAvailable ? const Color(0xFFF0FDF4) : Colors.white,
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
+                // 3. TESTING CONTROLS: COARSE GPS DISTANCE SIMULATOR
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(
-                      color: isAvailable ? const Color(0xFFBBF7D0) : const Color(0xFFE2E8F0),
-                    ),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  child: SwitchListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-                    title: Text(
-                      isAvailable ? 'Emergency Geofence: Active' : 'Emergency Geofence: Standby',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A), fontSize: 14),
-                    ),
-                    subtitle: Text(
-                      isAvailable
-                          ? 'Wakes device over any open app during acute hemorrhage alerts'
-                          : 'Not receiving emergency trauma dispatch calls',
-                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
-                    ),
-                    value: isAvailable,
-                    activeColor: const Color(0xFF16A34A),
-                    onChanged: (val) => setState(() => isAvailable = val),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'TESTING CONTROL: SIMULATE COARSE DEVICE DISTANCE',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.8, color: Color(0xFF64748B)),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ChoiceChip(
+                            label: const Text('250m (Nearby <500m)'),
+                            selected: simulatedDistanceMeters == 250,
+                            selectedColor: const Color(0xFFDC2626),
+                            labelStyle: TextStyle(
+                              color: simulatedDistanceMeters == 250 ? Colors.white : const Color(0xFF0F172A),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            onSelected: (_) => setState(() {
+                              simulatedDistanceMeters = 250;
+                              headsUpDismissed = false;
+                            }),
+                          ),
+                          ChoiceChip(
+                            label: const Text('1.2km (Wave 2)'),
+                            selected: simulatedDistanceMeters == 1200,
+                            selectedColor: const Color(0xFFDC2626),
+                            labelStyle: TextStyle(
+                              color: simulatedDistanceMeters == 1200 ? Colors.white : const Color(0xFF0F172A),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            onSelected: (_) => setState(() {
+                              simulatedDistanceMeters = 1200;
+                              headsUpDismissed = false;
+                            }),
+                          ),
+                          ChoiceChip(
+                            label: const Text('3.5km (Wave 3)'),
+                            selected: simulatedDistanceMeters == 3500,
+                            selectedColor: const Color(0xFFDC2626),
+                            labelStyle: TextStyle(
+                              color: simulatedDistanceMeters == 3500 ? Colors.white : const Color(0xFF0F172A),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            onSelected: (_) => setState(() {
+                              simulatedDistanceMeters = 3500;
+                              headsUpDismissed = false;
+                            }),
+                          ),
+                          ChoiceChip(
+                            label: const Text('15km (Distant >5km)'),
+                            selected: simulatedDistanceMeters == 15000,
+                            selectedColor: const Color(0xFFDC2626),
+                            labelStyle: TextStyle(
+                              color: simulatedDistanceMeters == 15000 ? Colors.white : const Color(0xFF0F172A),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            onSelected: (_) => setState(() {
+                              simulatedDistanceMeters = 15000;
+                              headsUpDismissed = false;
+                            }),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
 
-                // Medical Details Card
-                Card(
-                  color: Colors.white,
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(18.0),
+                // ==========================================================
+                // 4. TWO-STEP HEADS-UP SOS ALERT (SHOWN IF INSIDE RADIUS)
+                // ==========================================================
+                if (!isOnCooldown && isInsideRadius && !headsUpDismissed && !isEnRoute) ...[
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: const Color(0xFFF87171), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withValues(alpha: 0.12),
+                          blurRadius: 18,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text('Medical History & Cooldown', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        const SizedBox(height: 10),
-                        Text('• Last Donated: ${widget.profile['last_donation_date']}', style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
-                        Text('• Current Medications: ${widget.profile['medications']}', style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
-                        Text('• Chronic Conditions: ${widget.profile['diseases']}', style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
-                        const SizedBox(height: 10),
-                        const LinearProgressIndicator(value: 1.0, color: Color(0xFF16A34A), backgroundColor: Color(0xFFE2E8F0)),
-                        const SizedBox(height: 6),
-                        const Text('✅ 100% Eligible: 90-day cooldown satisfied', style: TextStyle(fontSize: 11, color: Color(0xFF16A34A), fontWeight: FontWeight.bold)),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(12)),
+                              child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Text('CRITICAL BLOOD ALERT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFFDC2626))),
+                                      const Spacer(),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(6)),
+                                        child: Text('${simulatedDistanceMeters}m AWAY', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Color(0xFFDC2626))),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    '${activeBroadcast['hospital_name']} requires urgent ${activeBroadcast['blood_group']} blood.',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Wave ${activeBroadcast['current_wave']} Ring Active (Perimeter: ${activeBroadcast['current_wave_radius_meters']}m). Device checks coarse GPS: ${simulatedDistanceMeters}m <= ${activeBroadcast['current_wave_radius_meters']}m (Status: INSIDE RADIUS).',
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                ),
+                                onPressed: handleCannotDonate,
+                                child: const Text('CANNOT DONATE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF64748B))),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFDC2626),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  elevation: 2,
+                                ),
+                                onPressed: handleIAmWilling,
+                                child: const Text('I AM WILLING', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-
-                // Active En Route Pass Card
-                if (isEnRoute)
-                  Card(
-                    color: Colors.white,
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
+                  const SizedBox(height: 16),
+                ] else if (!isInsideRadius) ...[
+                  // OUTSIDE RADIUS: STANDBY SLEEP STATE
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
-                      side: const BorderSide(color: Color(0xFF16A34A), width: 2),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(18.0),
-                      child: Column(
-                        children: [
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.bedtime_outlined, color: Color(0xFF94A3B8), size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('STATUS: EN ROUTE', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF16A34A))),
-                              Text('Valid: 60 min', style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+                              const Text('Standby / Sleep Mode Active', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F172A))),
+                              Text(
+                                'Distance ($simulatedDistanceMeters m) > Wave ${activeBroadcast['current_wave']} (${activeBroadcast['current_wave_radius_meters']} m). Device silently drops packet. Wakes only if wave expands.',
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                              ),
                             ],
                           ),
-                          const SizedBox(height: 14),
-                          Container(
-                            width: 140,
-                            height: 140,
-                            decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(16)),
-                            alignment: Alignment.center,
-                            child: const Icon(Icons.qr_code_2, size: 100, color: Colors.white),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text('Apollo Trauma Center & Blood Bank', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          const Text('Scan upon arrival for +15 Karma points', style: TextStyle(fontSize: 11, color: Color(0xFF16A34A), fontWeight: FontWeight.w600)),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(height: 16),
+                ],
 
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFDC2626),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                // ==========================================================
+                // 5. PHYSICAL HOSPITAL ARRIVAL & 6-DIGIT OTP PASS (IF ACCEPTED)
+                // ==========================================================
+                if (isEnRoute && generatedArrivalOtp != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0xFFBBF7D0), width: 2),
+                      boxShadow: [
+                        BoxShadow(color: Colors.green.withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(0, 6)),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(12)),
+                              child: const Icon(Icons.directions_walk_rounded, color: Color(0xFF16A34A), size: 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('DONOR EN ROUTE TO HOSPITAL', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF16A34A))),
+                                  Text('${activeBroadcast['hospital_name']} (Distance: $simulatedDistanceMeters m)', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Prominent 6-Digit Arrival OTP
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          alignment: Alignment.center,
+                          child: Column(
+                            children: [
+                              const Text('6-DIGIT ARRIVAL CHECK-IN OTP', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B), letterSpacing: 1.0)),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${generatedArrivalOtp!.substring(0, 3)}  ${generatedArrivalOtp!.substring(3)}',
+                                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, fontFamily: 'monospace', letterSpacing: 4.0, color: Color(0xFF0F172A)),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text('Provide this OTP to Hospital Reception Desk', style: TextStyle(fontSize: 11, color: Color(0xFF16A34A), fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Directions Summary
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(14)),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.navigation_outlined, size: 18, color: Color(0xFF475569)),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Route: North Corridor -> Blood Bank Emergency Desk (Ground Floor, Wing B).',
+                                  style: TextStyle(fontSize: 11, color: Color(0xFF475569), fontWeight: FontWeight.w500),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Simulate Hospital Reception OTP Check
+                        if (!arrivalVerifiedAtHospital)
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF16A34A),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            icon: const Icon(Icons.check_circle_outline, size: 20),
+                            label: const Text('SIMULATE RECEPTION OTP VERIFICATION', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                            onPressed: handleSimulateHospitalVerification,
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(14)),
+                            alignment: Alignment.center,
+                            child: const Text('🎉 ARRIVAL VERIFIED AT HOSPITAL (+15 KARMA CREDITED)', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF15803D), fontSize: 12)),
+                          ),
+                      ],
+                    ),
                   ),
-                  onPressed: () => setState(() => showIncomingCall = true),
-                  icon: const Icon(Icons.phone_callback),
-                  label: const Text('TEST OVERLAY CALL ALERT', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
+                  const SizedBox(height: 16),
+                ],
               ],
             ),
           ),
 
           // ==========================================================
-          // INCOMING EMERGENCY CALL SCREEN (DRAWS OVER OTHER APPS)
+          // 6. FULL-SCREEN INCOMING CALL OVERLAY (SYSTEM_ALERT_WINDOW)
           // ==========================================================
           if (showIncomingCall)
             Positioned.fill(
               child: Container(
-                color: const Color(0xFF450A0A),
+                color: const Color(0xFF0F172A).withValues(alpha: 0.96),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       children: [
+                        const SizedBox(height: 20),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(color: Colors.red.shade600, borderRadius: BorderRadius.circular(20)),
-                          child: const Text(
-                            '🚨 INCOMING EMERGENCY CALL (OVERLAY)',
-                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.red.shade400, width: 2),
                           ),
+                          child: const Icon(Icons.phone_in_talk, color: Colors.white, size: 48),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 18),
                         const Text(
-                          'Apollo Trauma Center',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
+                          'PULSE DIAL DISPATCH',
+                          style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 2.0),
                         ),
-                        const SizedBox(height: 4),
-                        Text('Emergency Trauma Unit • +91-9876543210', style: TextStyle(fontSize: 13, color: Colors.red.shade200)),
+                        const SizedBox(height: 6),
+                        Text(
+                          activeBroadcast['hospital_name'],
+                          style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'URGENT ${activeBroadcast['blood_group']} BLOOD NEEDED NEAR YOU',
+                          style: const TextStyle(color: Color(0xFFFCA5A5), fontSize: 13, fontWeight: FontWeight.w900),
+                        ),
                       ],
                     ),
-
-                    Container(
-                      width: 110,
-                      height: 110,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDC2626),
-                        shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.6), blurRadius: 30, spreadRadius: 10)],
-                      ),
-                      child: const Icon(Icons.local_hospital, size: 54, color: Colors.white),
-                    ),
-
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.2)),
-                      ),
-                      child: Column(
-                        children: [
-                          const Text('CRITICAL HEMORRHAGE IN OR-3', style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 13)),
-                          const SizedBox(height: 4),
-                          Text('Requested: ${widget.profile['blood_type']} | 2 Units', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
-                          const SizedBox(height: 2),
-                          const Text('Distance: 0.8 km • ~4 mins drive', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                        ],
-                      ),
-                    ),
-
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         Column(
                           children: [
                             FloatingActionButton(
-                              heroTag: 'declineOverlayBtn',
+                              heroTag: 'declineBtn',
                               backgroundColor: Colors.red.shade700,
                               foregroundColor: Colors.white,
-                              onPressed: () => setState(() => showIncomingCall = false),
+                              onPressed: handleDeclineCall,
                               child: const Icon(Icons.call_end, size: 28),
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 8),
                             const Text('Decline', style: TextStyle(color: Colors.white70, fontSize: 12)),
                           ],
                         ),
                         Column(
                           children: [
                             FloatingActionButton(
-                              heroTag: 'answerOverlayBtn',
+                              heroTag: 'answerBtn',
                               backgroundColor: const Color(0xFF16A34A),
                               foregroundColor: Colors.white,
-                              onPressed: () {
-                                setState(() {
-                                  showIncomingCall = false;
-                                  showPreScreening = true;
-                                });
-                              },
+                              onPressed: handleAnswerCall,
                               child: const Icon(Icons.call, size: 32),
                             ),
-                            const SizedBox(height: 6),
-                            const Text('Answer & Accept', style: TextStyle(color: Color(0xFF86EFAC), fontSize: 12, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8),
+                            const Text('Answer Call', style: TextStyle(color: Color(0xFF86EFAC), fontSize: 12, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ],
@@ -887,69 +1216,89 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
             ),
 
           // ==========================================================
-          // 4-QUESTION PRE-SCREENING MODAL
+          // 7. AUTOMATED VOICE CALL ENGINE & INTERACTIVE DTMF KEYPAD
           // ==========================================================
-          if (showPreScreening)
+          if (callConnected)
             Positioned.fill(
               child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+                color: const Color(0xFF0F172A),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 36),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    // Call Status Header
+                    Text(
+                      activeBroadcast['hospital_name'],
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Automated Voice Engine • ${callDurationSeconds ~/ 60}:${(callDurationSeconds % 60).toString().padLeft(2, '0')}',
+                      style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Voice Synthesizer / IVR Speech Box
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFF334155)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.volume_up_rounded, color: Color(0xFF38BDF8), size: 18),
+                              SizedBox(width: 8),
+                              Text('IVR VOICE PROMPT', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            ivrSpeech,
+                            style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4, fontWeight: FontWeight.w600),
+                          ),
+                          if (isAwaitingDateEntry) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              'Buffer: ${ivrInputBuffer.padRight(8, '_')}',
+                              style: const TextStyle(color: Color(0xFFFBBF24), fontSize: 16, fontFamily: 'monospace', fontWeight: FontWeight.w900),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+
+                    // DTMF KEYPAD GRID
+                    Column(
                       children: [
-                        const Text('Clinical Pre-Screening', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
-                        IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => showPreScreening = false)),
+                        _buildKeypadRow(['1', '2', '3']),
+                        const SizedBox(height: 12),
+                        _buildKeypadRow(['4', '5', '6']),
+                        const SizedBox(height: 12),
+                        _buildKeypadRow(['7', '8', '9']),
+                        const SizedBox(height: 12),
+                        _buildKeypadRow(['*', '0', '#']),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    const Text('Confirm 4 mandatory safety conditions per Blood Bank protocol:', style: TextStyle(color: Color(0xFF64748B), fontSize: 13)),
-                    const SizedBox(height: 20),
-
-                    CheckboxListTile(
-                      title: const Text('1. Free of fever or active infection in past 14 days'),
-                      value: q1,
-                      activeColor: const Color(0xFF16A34A),
-                      onChanged: (v) => setState(() => q1 = v ?? false),
-                    ),
-                    CheckboxListTile(
-                      title: const Text('2. No alcohol consumption in past 24 hours'),
-                      value: q2,
-                      activeColor: const Color(0xFF16A34A),
-                      onChanged: (v) => setState(() => q2 = v ?? false),
-                    ),
-                    CheckboxListTile(
-                      title: const Text('3. Not taking antibiotics or restricted blood medications'),
-                      value: q3,
-                      activeColor: const Color(0xFF16A34A),
-                      onChanged: (v) => setState(() => q3 = v ?? false),
-                    ),
-                    CheckboxListTile(
-                      title: const Text('4. Minimum body weight met (≥ 50 kg / 110 lbs)'),
-                      value: q4,
-                      activeColor: const Color(0xFF16A34A),
-                      onChanged: (v) => setState(() => q4 = v ?? false),
-                    ),
-
                     const Spacer(),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: allPreScreenPassed ? const Color(0xFF16A34A) : Colors.grey.shade400,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      onPressed: allPreScreenPassed
-                          ? () {
-                              setState(() {
-                                showPreScreening = false;
-                                isEnRoute = true;
-                              });
-                            }
-                          : null,
-                      child: const Text('CONFIRM & GENERATE ARRIVAL PASS', style: TextStyle(fontWeight: FontWeight.bold)),
+
+                    // End Call Button
+                    FloatingActionButton(
+                      heroTag: 'endCallActiveBtn',
+                      backgroundColor: Colors.red.shade700,
+                      foregroundColor: Colors.white,
+                      onPressed: () {
+                        setState(() {
+                          callConnected = false;
+                          callTimer?.cancel();
+                        });
+                      },
+                      child: const Icon(Icons.call_end),
                     ),
                   ],
                 ),
@@ -957,6 +1306,42 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildKeypadRow(List<String> keys) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: keys.map((k) {
+        String subtext = '';
+        if (k == '1') subtext = 'ACCEPT';
+        if (k == '2') subtext = 'DECLINE';
+        if (k == '3') subtext = 'COOLDOWN';
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: GestureDetector(
+            onTap: () => handleKeypadPress(k),
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF334155)),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(k, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  if (subtext.isNotEmpty)
+                    Text(subtext, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 8, fontWeight: FontWeight.w900)),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

@@ -187,13 +187,13 @@ export class SpatialDispatchEngine {
   getTierConfig(tier) {
     switch (tier) {
       case 1:
-        return { tier: 1, radiusKm: 1, timeoutSec: 180, multiplier: 3, label: 'Immediate Perimeter (<= 1 km)' };
+        return { tier: 1, radiusKm: 0.5, timeoutSec: 180, multiplier: 3, label: 'Wave 1: Immediate Perimeter (<= 500m)' };
       case 2:
-        return { tier: 2, radiusKm: 5, timeoutSec: 300, multiplier: 2, label: 'Neighborhood Drive (<= 5 km)' };
+        return { tier: 2, radiusKm: 2.0, timeoutSec: 300, multiplier: 2, label: 'Wave 2: Local Neighborhood (<= 2.0 km)' };
       case 3:
-        return { tier: 3, radiusKm: 15, timeoutSec: 600, multiplier: 1, label: 'City-Wide Emergency (<= 15 km)' };
+        return { tier: 3, radiusKm: 5.0, timeoutSec: 600, multiplier: 1, label: 'Wave 3: District Emergency (<= 5.0 km)' };
       default:
-        return { tier: 1, radiusKm: 1, timeoutSec: 180, multiplier: 3, label: 'Immediate Perimeter' };
+        return { tier: 1, radiusKm: 0.5, timeoutSec: 180, multiplier: 3, label: 'Wave 1: Immediate Perimeter (<= 500m)' };
     }
   }
 }

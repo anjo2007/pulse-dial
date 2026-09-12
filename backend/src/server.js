@@ -322,9 +322,17 @@ app.post('/api/emergency/request', (req, res) => {
 
   engine.activeRequests.set(requestId, emergencyReq);
 
-  // Create assignments
+  // Create assignments with 6-digit Arrival OTP and signed QR pass
   const assignments = [];
   for (const match of searchResult.candidates) {
+    const otp = `${100000 + Math.floor(Math.random() * 900000)}`;
+    const qrData = generateArrivalToken({
+      requestId,
+      donorId: match.donor.id,
+      hospitalId: hospital.id,
+      bloodType: emergencyReq.blood_type,
+    });
+
     const assignment = {
       id: uuidv4(),
       request_id: requestId,
@@ -339,6 +347,8 @@ app.post('/api/emergency/request', (req, res) => {
       distance_km: match.distanceKm,
       distance_meters: match.distanceMeters,
       priority_score: match.priorityScore,
+      arrival_otp: otp,
+      qr_token: qrData.token,
       notified_at: new Date().toISOString(),
     };
     assignments.push(assignment);
@@ -396,6 +406,14 @@ app.post('/api/emergency/:id/escalate', (req, res) => {
   for (const match of searchResult.candidates) {
     const key = `${id}:${match.donor.id}`;
     if (!engine.assignments.has(key)) {
+      const otp = `${100000 + Math.floor(Math.random() * 900000)}`;
+      const qrData = generateArrivalToken({
+        requestId: id,
+        donorId: match.donor.id,
+        hospitalId: hospital.id,
+        bloodType: emergencyReq.blood_type,
+      });
+
       const assignment = {
         id: uuidv4(),
         request_id: id,
@@ -410,6 +428,8 @@ app.post('/api/emergency/:id/escalate', (req, res) => {
         distance_km: match.distanceKm,
         distance_meters: match.distanceMeters,
         priority_score: match.priorityScore,
+        arrival_otp: otp,
+        qr_token: qrData.token,
         notified_at: new Date().toISOString(),
       };
       engine.assignments.set(key, assignment);
@@ -528,17 +548,47 @@ app.post('/api/emergency/:id/respond', (req, res) => {
   });
 });
 
-// Hospital scans and verifies Donor QR Token
+// Hospital scans and verifies Donor 6-digit Arrival OTP or QR Pass Token
 app.post('/api/emergency/verify-arrival', (req, res) => {
-  const { token } = req.body;
-  if (!token) return res.status(400).json({ error: 'Token is required' });
+  const { token, otp } = req.body;
+  const inputParam = (otp || token || '').toString().trim().replace(/\s+/g, '');
+  if (!inputParam) return res.status(400).json({ error: '6-digit OTP or QR Pass Token is required' });
 
-  const verification = verifyArrivalToken(token);
-  if (!verification.valid) {
-    return res.status(400).json({ error: verification.error });
+  let matchedAssignment = null;
+  let requestId = null;
+  let donorId = null;
+
+  // 1. Direct match by 6-digit Arrival OTP or QR token
+  for (const [key, asgn] of engine.assignments.entries()) {
+    if (asgn.arrival_otp && asgn.arrival_otp.replace(/\s+/g, '') === inputParam) {
+      matchedAssignment = asgn;
+      requestId = asgn.request_id;
+      donorId = asgn.donor_id;
+      break;
+    }
+    if (asgn.qr_token === inputParam) {
+      matchedAssignment = asgn;
+      requestId = asgn.request_id;
+      donorId = asgn.donor_id;
+      break;
+    }
   }
 
-  const { requestId, donorId } = verification.data;
+  // 2. Cryptographic signature check fallback
+  if (!matchedAssignment) {
+    const verification = verifyArrivalToken(inputParam);
+    if (verification.valid) {
+      requestId = verification.data.requestId;
+      donorId = verification.data.donorId;
+      const key = `${requestId}:${donorId}`;
+      matchedAssignment = engine.assignments.get(key);
+    }
+  }
+
+  if (!requestId || !donorId) {
+    return res.status(400).json({ error: 'Authentication Denied: Invalid 6-digit OTP or expired QR Token.' });
+  }
+
   const emergencyReq = engine.activeRequests.get(requestId);
   const donor = engine.donors.get(donorId);
 
@@ -549,12 +599,9 @@ app.post('/api/emergency/verify-arrival', (req, res) => {
     return res.status(404).json({ error: 'Donor profile record not found' });
   }
 
-  const key = `${requestId}:${donorId}`;
-  const assignment = engine.assignments.get(key);
-
-  if (assignment) {
-    assignment.status = 'COMPLETED';
-    assignment.arrived_at = new Date().toISOString();
+  if (matchedAssignment) {
+    matchedAssignment.status = 'COMPLETED';
+    matchedAssignment.arrived_at = new Date().toISOString();
   }
 
   // Update Donor reliability score: +15 points per spec Section 7.2

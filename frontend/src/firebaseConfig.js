@@ -255,7 +255,7 @@ export function subscribeAssignments(requestId, onUpdate) {
 export async function createEmergencyInFirestore(reqData, hospital, donorsList = []) {
   const reqId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const nowEpoch = Date.now();
-  const radiusKm = 3.0; // Tier 1 radius
+  const radiusKm = 0.5; // Wave 1: 500m
 
   const newRequest = {
     id: reqId,
@@ -269,7 +269,9 @@ export async function createEmergencyInFirestore(reqData, hospital, donorsList =
     lat: hospital.lat,
     lon: hospital.lon,
     current_tier: 1,
-    current_radius_km: radiusKm,
+    current_wave: 1,
+    current_radius_km: 0.5,
+    current_wave_radius_meters: 500,
     status: 'ACTIVE',
     created_at_epoch: nowEpoch,
     created_at: new Date().toISOString(),
@@ -294,6 +296,7 @@ export async function createEmergencyInFirestore(reqData, hospital, donorsList =
     if (dist <= radiusKm) {
       const asgnId = `asgn_${reqId}_${donor.id}`;
       const token = `QR_${Date.now()}_${donor.id.substring(0, 5)}`;
+      const otp = `${100000 + Math.floor(Math.random() * 900000)}`;
       const priority = Math.round(((1 / Math.max(dist, 0.1)) * 0.45 + (donor.reliability_score / 150) * 0.4) * 1000) / 1000;
 
       const assignment = {
@@ -304,9 +307,11 @@ export async function createEmergencyInFirestore(reqData, hospital, donorsList =
         donor_phone: donor.phone,
         blood_type: donor.blood_type,
         distance_km: Math.round(dist * 100) / 100,
+        distance_meters: Math.round(dist * 1000),
         priority_score: priority,
-        status: 'PENDING',
+        status: 'EN_ROUTE',
         qr_token: token,
+        arrival_otp: otp,
         created_at: new Date().toISOString(),
       };
 
@@ -323,18 +328,22 @@ export async function createEmergencyInFirestore(reqData, hospital, donorsList =
 }
 
 /**
- * Escalate Radial Tier in Firestore
+ * Escalate Radial Progressive Wave in Firestore
+ * Wave 1: 500m -> Wave 2: 2.0km -> Wave 3: 5.0km
  */
 export async function escalateTierInFirestore(activeRequest, hospital, donorsList = []) {
   if (!activeRequest) return null;
 
   const nextTier = (activeRequest.current_tier || 1) + 1;
-  const nextRadius = nextTier === 2 ? 8.0 : 15.0;
+  const nextRadius = nextTier === 2 ? 2.0 : 5.0;
+  const nextMeters = nextTier === 2 ? 2000 : 5000;
 
   try {
     await updateDoc(doc(db, 'emergency_requests', activeRequest.id), {
       current_tier: nextTier,
+      current_wave: nextTier,
       current_radius_km: nextRadius,
+      current_wave_radius_meters: nextMeters,
     });
   } catch (e) {}
 
@@ -347,9 +356,10 @@ export async function escalateTierInFirestore(activeRequest, hospital, donorsLis
     if (!compatible.includes(donor.blood_type)) continue;
 
     const dist = calculateDistanceKm(hospital.lat, hospital.lon, donor.lat, donor.lon);
-    if (dist > (activeRequest.current_radius_km || 3.0) && dist <= nextRadius) {
+    if (dist > (activeRequest.current_radius_km || 0.5) && dist <= nextRadius) {
       const asgnId = `asgn_${activeRequest.id}_${donor.id}`;
       const token = `QR_${Date.now()}_${donor.id.substring(0, 5)}`;
+      const otp = `${100000 + Math.floor(Math.random() * 900000)}`;
       const priority = Math.round(((1 / Math.max(dist, 0.1)) * 0.45 + (donor.reliability_score / 150) * 0.4) * 1000) / 1000;
 
       const assignment = {
@@ -360,9 +370,11 @@ export async function escalateTierInFirestore(activeRequest, hospital, donorsLis
         donor_phone: donor.phone,
         blood_type: donor.blood_type,
         distance_km: Math.round(dist * 100) / 100,
+        distance_meters: Math.round(dist * 1000),
         priority_score: priority,
-        status: 'PENDING',
+        status: 'EN_ROUTE',
         qr_token: token,
+        arrival_otp: otp,
         created_at: new Date().toISOString(),
       };
 
@@ -376,18 +388,26 @@ export async function escalateTierInFirestore(activeRequest, hospital, donorsLis
   return {
     tier: nextTier,
     radiusKm: nextRadius,
+    radiusMeters: nextMeters,
     newAssignments,
   };
 }
 
 /**
- * Verify Arrival QR Token in Firestore
+ * Verify Physical Arrival (Accepts either 6-Digit OTP or QR Token)
  */
-export async function verifyArrivalTokenInFirestore(token) {
+export async function verifyArrivalTokenInFirestore(tokenOrOtp) {
+  const clean = tokenOrOtp.replace(/\s+/g, '').trim();
+
   try {
     const asgnCol = collection(db, 'dispatch_assignments');
-    const q = query(asgnCol, where('qr_token', '==', token.trim()));
-    const snap = await getDocs(q);
+    
+    // First try matching by 6-digit Arrival OTP
+    let snap = await getDocs(query(asgnCol, where('arrival_otp', '==', clean)));
+    // If empty, try matching by QR Token
+    if (snap.empty) {
+      snap = await getDocs(query(asgnCol, where('qr_token', '==', clean)));
+    }
 
     if (snap.empty) {
       return { success: false, error: 'Invalid or unrecognized QR token.' };

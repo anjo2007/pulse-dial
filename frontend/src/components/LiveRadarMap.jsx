@@ -73,15 +73,15 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
         <div className="flex items-center gap-3 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full border border-red-500 bg-red-500/30"></span>
-            <span className="font-medium text-slate-700">Tier 1 (&le; 1 km)</span>
+            <span className="font-medium text-slate-700">Wave 1 (&le; 500m)</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full border border-amber-500 bg-amber-500/30"></span>
-            <span className="font-medium text-slate-700">Tier 2 (&le; 5 km)</span>
+            <span className="font-medium text-slate-700">Wave 2 (&le; 2.0 km)</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full border border-blue-500 bg-blue-500/30"></span>
-            <span className="font-medium text-slate-700">Tier 3 (&le; 15 km)</span>
+            <span className="font-medium text-slate-700">Wave 3 (&le; 5.0 km)</span>
           </div>
         </div>
       </div>
@@ -92,7 +92,7 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
         scrollWheelZoom={true}
         className="w-full h-full"
       >
-        <RecenterMap center={hospitalPos} zoom={currentTier === 1 ? 14 : currentTier === 2 ? 12 : 11} />
+        <RecenterMap center={hospitalPos} zoom={currentTier === 1 ? 15 : currentTier === 2 ? 13 : 11} />
 
         {/* CartoDB Positron Light Ambient Tiles */}
         <TileLayer
@@ -100,42 +100,42 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
 
-        {/* Tier 1 Radial Boundary: 1,000 meters */}
+        {/* Wave 1 Progressive Perimeter: 500 meters */}
         <Circle
           center={hospitalPos}
-          radius={1000}
+          radius={500}
           pathOptions={{
             color: '#DC2626',
             fillColor: '#EF4444',
-            fillOpacity: currentTier >= 1 ? 0.16 : 0.05,
-            weight: currentTier === 1 ? 2.8 : 1.5,
+            fillOpacity: currentTier >= 1 ? 0.20 : 0.05,
+            weight: currentTier === 1 ? 3 : 1.5,
             dashArray: currentTier === 1 ? null : '4 4',
           }}
           className={currentTier === 1 ? 'radar-ring' : ''}
         />
 
-        {/* Tier 2 Radial Boundary: 5,000 meters */}
+        {/* Wave 2 Progressive Perimeter: 2,000 meters */}
         <Circle
           center={hospitalPos}
-          radius={5000}
+          radius={2000}
           pathOptions={{
             color: '#D97706',
             fillColor: '#F59E0B',
-            fillOpacity: currentTier >= 2 ? 0.10 : 0.03,
+            fillOpacity: currentTier >= 2 ? 0.12 : 0.03,
             weight: currentTier === 2 ? 2.5 : 1,
             dashArray: currentTier === 2 ? null : '6 6',
           }}
           className={currentTier === 2 ? 'radar-ring' : ''}
         />
 
-        {/* Tier 3 Radial Boundary: 15,000 meters */}
+        {/* Wave 3 Progressive Perimeter: 5,000 meters */}
         <Circle
           center={hospitalPos}
-          radius={15000}
+          radius={5000}
           pathOptions={{
             color: '#2563EB',
             fillColor: '#3B82F6',
-            fillOpacity: currentTier >= 3 ? 0.06 : 0.015,
+            fillOpacity: currentTier >= 3 ? 0.08 : 0.02,
             weight: currentTier === 3 ? 2 : 1,
             dashArray: '8 8',
           }}
@@ -156,7 +156,7 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
                   <div className="mt-2 pt-2 border-t border-slate-100 text-xs">
                     <span className="font-bold text-red-600 uppercase text-[10px]">Active Emergency: </span>
                     <div className="font-bold text-slate-900 mt-0.5">
-                      {activeRequest.units_needed} Units of {activeRequest.blood_type}
+                      {activeRequest.units_needed || activeRequest.units_required} Units of {activeRequest.blood_type}
                     </div>
                   </div>
                 )}
@@ -172,14 +172,14 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
             <Marker
               key={asgn.id || asgn.donor_id}
               position={[asgn.lat, asgn.lon]}
-              icon={createDonorIcon(asgn.status, asgn.donor_blood_type)}
+              icon={createDonorIcon(asgn.status, asgn.donor_blood_type || asgn.blood_type)}
             >
               <Popup className="light-popup">
                 <div className="space-y-1.5 text-xs p-0.5">
                   <div className="font-bold text-slate-900 text-sm flex items-center justify-between border-b border-slate-100 pb-1">
                     <span>{asgn.donor_name}</span>
                     <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded font-mono font-bold text-xs">
-                      {asgn.donor_blood_type}
+                      {asgn.donor_blood_type || asgn.blood_type}
                     </span>
                   </div>
                   <div className="text-slate-600">
@@ -193,10 +193,18 @@ export default function LiveRadarMap({ hospital, activeRequest, assignments = []
                       </strong>
                     </div>
                   )}
+                  {asgn.arrival_otp && (
+                    <div className="text-slate-600">
+                      Arrival OTP:{' '}
+                      <strong className="text-slate-900 font-mono bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                        {asgn.arrival_otp}
+                      </strong>
+                    </div>
+                  )}
                   <div className="text-slate-600 flex items-center gap-1.5 pt-1">
                     <span>Response:</span>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      asgn.status === 'ACCEPTED' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                      asgn.status === 'ACCEPTED' || asgn.status === 'EN_ROUTE' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
                       asgn.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                       'bg-amber-100 text-amber-800 border border-amber-200'
                     }`}>
